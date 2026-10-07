@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "DeepSeek Web",
-    "description": "Sidebar entry that opens chat.deepseek.com in a right-sidebar Browser tab"
+    "title": "Web AI entry",
+    "description": "Sidebar entry that opens free web AI chats (DeepSeek / Kimi / Doubao / Yuanbao / Qwen / ChatGLM) in a right-sidebar Browser tab"
   }
 }

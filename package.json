@@ -1,8 +1,8 @@
 {
   "name": "dsh-deepseek-web",
   "icon": "./icon.svg",
-  "version": "0.1.0",
-  "description": "DeepSeek 网页版一键入口：在右侧边栏浏览器 tab 里打开 chat.deepseek.com（免费网页版，走 Electron webview，不受 CSP frame-ancestors 限制）。",
+  "version": "0.2.0",
+  "description": "网页版 AI 一键入口：在右侧边栏浏览器 tab 里打开 DeepSeek / Kimi / 豆包 / 腾讯元宝 / 通义千问 / 智谱清言的免费网页版（走 Electron webview，不受 CSP frame-ancestors 限制）。站点列表在 lib/client.js 的 SITES 常量里，可自由增删。",
   "type": "module",
   "main": "lib/index.js",
   "exports": {

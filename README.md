@@ -1,7 +1,9 @@
-# dsh-deepseek-web — DeepSeek 网页版一键入口
+# dsh-deepseek-web — 网页版 AI 一键入口
 
-在 **DeepSeek Harness 桌面版**的侧边栏底部加一个 **「DeepSeek 网页版」** 按钮：点一下，右侧边栏的浏览器 tab 就打开
-`https://chat.deepseek.com`（免费网页版），和当前会话并排。
+在 **DeepSeek Harness 桌面版**的侧边栏底部加一个 **「网页版 AI」** 按钮：点一下展开站点列表，
+选中哪家就在**右侧边栏的浏览器 tab** 里打开它的免费网页版，和当前会话并排。
+
+默认六站：**DeepSeek 网页版 · Kimi · 豆包 · 腾讯元宝 · 通义千问 · 智谱清言**（可自由增删，见下）。
 
 > 动机：简单问题不想走 API 计费，但又不想每次手动开浏览器、找网址、切窗口。
 
@@ -11,9 +13,9 @@
 
 | 方案 | 结论 |
 | --- | --- |
-| 把网页版 `<iframe>` 嵌进 GUI | ❌ 不可行。`chat.deepseek.com` 响应头带 `content-security-policy: frame-ancestors 'none'`，浏览器会拒绝渲染 |
+| 把网页版 `<iframe>` 嵌进 GUI | ❌ 不可行。`chat.deepseek.com` 等站点响应头带 `content-security-policy: frame-ancestors 'none'`，浏览器会拒绝渲染 |
 | 反向代理剥掉 CSP | ⚠️ 能绕过，但要自己处理登录、WAF（`HWWAFSESID`）、SSE 流、证书与资源改写，脆且慢 |
-| **用 DSH 桌面版自带的右侧栏浏览器面板** | ✅ 采用。它用 Electron `<webview>`（独立 Chromium guest）承载页面，**`frame-ancestors` 对 guest 不生效**；本插件只是省掉「每次手输网址」 |
+| **用 DSH 桌面版自带的右侧栏浏览器面板** | ✅ 采用。它用 Electron `<webview>`（独立 Chromium guest）承载页面，**`frame-ancestors` 对 guest 不生效**；本插件只负责省掉「每次手输网址」 |
 
 面板本体是 DSH 内置插件 `@deepseek-ai/dsh-client-ui-sidebar-browser`（**desktop profile 默认启用**）。
 本包只做一件事——调用它的公开入口：
@@ -23,7 +25,41 @@ ctx.sidebarRight.openTab("browser", { params: { url: "https://chat.deepseek.com"
 ```
 
 打开失败时（非桌面端、右侧栏服务不可用）自动退回 `window.open`，桌面端由主进程
-`setWindowOpenHandler` → `shell.openExternal` 转给系统浏览器，不会「点了没反应」。
+`setWindowOpenHandler` → `shell.openExternal` 转给系统浏览器，不会「点了没反应」——
+而且回退时带的是**你选中的那一站**，不是写死的默认站。
+
+## 站点列表
+
+站点就是 [`lib/client.js`](./lib/client.js) 顶部的 `SITES` 常量，**整个配置面就这一个数组**，
+顺序 = 菜单顺序，第一项是默认站点。加一站就追加一行：
+
+```js
+const SITES = [
+  { id: "deepseek", label: "DeepSeek 网页版", url: "https://chat.deepseek.com" },
+  // { id: "chatgpt", label: "ChatGPT", url: "https://chatgpt.com" },
+];
+```
+
+已收录站点的本机探活结果（Chrome UA，curl 层）：
+
+| 站点 | 结果 | | 站点 | 结果 |
+| --- | --- | --- | --- | --- |
+| chat.deepseek.com | 200 | | doubao.com | 200 |
+| kimi.com | 200 | | yuanbao.tencent.com | 200 |
+| chat.qwen.ai | 200 | | chatglm.cn | 200 |
+| chatgpt.com | 403 | | claude.ai | 403 |
+| perplexity.ai | 403 | | | |
+
+**403 别急着下结论**：那是 curl 撞上 Cloudflare 机器人拦截，不代表浏览器里打不开。
+ChatGPT / Claude / Gemini 默认在代码里**注释掉**了，用之前请在面板里实测后自行放开。
+
+### 站点侧的硬限制
+
+guest 的权限请求、下载、原生弹窗**全被拒绝**（http/https 弹窗会被转开成新的 sidebar tab）。
+
+- 用 **Google / Apple 账号第三方登录**的站点（ChatGPT、Gemini 常见）可能卡在 OAuth 流程；
+- 少数站点会识别 Electron UA 而给出不同的页面；
+- 这些都不影响「已经登录过的站点」——它们靠的是 guest 自己的会话 Cookie。
 
 ## 要求
 
@@ -43,7 +79,7 @@ bash ~/Documents/dsh-deepseek-web/install.sh          # 默认 desktop profile
 ```
 
 脚本幂等，做三件事：建 symlink → 补 profile 的 `dependencies` + `dsh.profile.bundles` → 打印重启提示。
-**然后需要重启一次 DSH 宿主**（点左侧栏底部的「重启」按钮，或重开应用），生效后左侧栏底部出现「DeepSeek 网页版」。
+**然后需要重启一次 DSH 宿主**（点左侧栏底部的「重启」按钮，或重开应用），生效后左侧栏底部出现「网页版 AI」。
 
 host 侧的挂载行由本包自带的 `cordis.patch.yml` 通过 `dsh.bundle.patch` 提供，
 **不要**再往 profile 自己的 `cordis.patch.yml` 里写 `insert`（会重复挂载出两个按钮）。
@@ -61,22 +97,20 @@ PKG="$HOME/.dsh/profiles/desktop/package.json"
 
 - **登录不跨应用重启保留。** 桌面版给这个面板分配的存储分区是
   `dsh-sidebar-browser-${randomUUID()}`（进程内创建、没有 `persist:` 前缀），Cookie 只活在本次进程里。
-  每次重启 DeepSeek Harness 后需要重新登录一次 `chat.deepseek.com`。好消息是 tab 的标题/URL 会被
-  保存，重启后点「恢复」即可，不用重输网址。
+  每次重启 DeepSeek Harness 后需要重新登录一次。好消息是 tab 的标题/URL 会被保存，
+  重启后点「恢复」即可，不用重输网址。
 - 面板里是**真正的网页版，没有 API**：DSH 的模型路由无法自动把「简单问题」转发过去。
-  这条入口是给**手动**问免费问题时用的。
+  这条入口是给**手动**问免费问题时用的；要做 API 侧的分流请走 `@deepseek-ai/dsh-llm-pi-ai` 的路由配置。
 
 ## 文件
 
 | 文件 | 作用 |
 | --- | --- |
 | `lib/index.js` | host 半边（stub：`name` + 空 `apply`），cordis loader 需要一个服务端入口 |
-| `lib/client.js` | 浏览器半边：注册 `sidebar.footer.action` 槽位的入口按钮（`id: deepseek-web`，`order: 15`） |
+| `lib/client.js` | 浏览器半边：`SITES` 站点表 + 注册 `sidebar.footer.action` 槽位的入口按钮（`id: deepseek-web`，`order: 15`） |
 | `cordis.patch.yml` | bundle patch：`insert: [{ id: deepseek-web, name: dsh-deepseek-web }]` |
 | `locale/zh.json` / `locale/en.json` | 插件说明书元信息（供插件清单类界面读取） |
 | `install.sh` | 装/校验 profile 挂载 |
-
-改目标网址：编辑 `lib/client.js` 里的 `DEEPSEEK_WEB_URL`。
 
 ## 关键常量（排障用）
 
@@ -86,20 +120,25 @@ PKG="$HOME/.dsh/profiles/desktop/package.json"
 - 入口 id：`deepseek-web`；order `15`（夹在 `dpharness` = 12 与 `restart` = 20 之间）
 - `sidebarRight` 服务**故意不写进 `inject`**，改为惰性解析：服务缺失时只回退，不会让插件永久
   pending（`dsh-locale-fallback` 曾因声明了缺失的 inject 把整个 boot 拖挂）
+- 图标按 `IconNewChatOutlineRegular` → `...Medium` → `...20` → `IconGlobeOutline*` 逐级解析，
+  全都没有时返回 `null` 而不是 `undefined`——渲染期抛错会被 slot 的错误边界吃掉，表现为「按钮静默消失」
+- 展开态用 `useState` + 点击外部/Escape 关闭（`document` 上的 capture 阶段 click 监听），
+  不依赖任何 popover/Menu 组件，因此不受侧边栏 `overflow` 裁剪影响
 
 ## English quickstart
 
-A one-click sidebar entry for **DeepSeek Harness Desktop**: it opens the free
-`https://chat.deepseek.com` web chat inside DSH's built-in right-sidebar browser panel,
-side by side with your current session.
+A one-click multi-site entry for **DeepSeek Harness Desktop**: it opens a free web AI chat
+(DeepSeek / Kimi / Doubao / Yuanbao / Qwen / ChatGLM) inside DSH's built-in right-sidebar browser
+panel, side by side with your current session.
 
 - The built-in panel (`@deepseek-ai/dsh-client-ui-sidebar-browser`, enabled by default in the
   `desktop` profile) renders pages in an Electron `<webview>` — an isolated Chromium guest — so
-  `chat.deepseek.com`'s `content-security-policy: frame-ancestors 'none'` does **not** apply
-  (it only blocks `<iframe>` embedding).
+  `content-security-policy: frame-ancestors 'none'` does **not** apply (it only blocks `<iframe>`
+  embedding).
 - This package just calls the panel's public API:
-  `ctx.sidebarRight.openTab("browser", { params: { url: "https://chat.deepseek.com" } })`,
-  falling back to `window.open` when the sidebar service is unavailable.
+  `ctx.sidebarRight.openTab("browser", { params: { url } })`, falling back to `window.open` when the
+  sidebar service is unavailable.
+- The site list is the `SITES` array at the top of [`lib/client.js`](./lib/client.js).
 
 ```bash
 git clone https://github.com/zhanghao3693/dsh-deepseek-web.git ~/Documents/dsh-deepseek-web
@@ -107,10 +146,11 @@ bash ~/Documents/dsh-deepseek-web/install.sh
 # then restart the DSH host (restart button at the sidebar foot, or relaunch the app)
 ```
 
-Caveat: cookies for that panel live in an in-memory partition
-(`dsh-sidebar-browser-${randomUUID()}`), so you must log in to `chat.deepseek.com` again after each
-app restart. It is the real web app, with no API — DSH's model router cannot dispatch to it
-automatically.
+Caveats: cookies for that panel live in an in-memory partition
+(`dsh-sidebar-browser-${randomUUID()}`), so you must log in again after each app restart; guest
+permission requests, downloads and native popups are denied (http/https popups become new sidebar
+tabs), so OAuth-via-popup logins may not complete. It is the real web app, with no API — DSH's
+model router cannot dispatch to it automatically.
 
 ## License
 
