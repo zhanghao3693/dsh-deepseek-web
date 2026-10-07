@@ -53,6 +53,16 @@ const SITES = [
 **403 别急着下结论**：那是 curl 撞上 Cloudflare 机器人拦截，不代表浏览器里打不开。
 ChatGPT / Claude / Gemini 默认在代码里**注释掉**了，用之前请在面板里实测后自行放开。
 
+### 图标
+
+菜单里每一站显示的是**各家的品牌图标**，以 data URI 内联在 [`lib/client.js`](./lib/client.js) 的
+`ICONS` 常量里——不热链、不发额外请求、离线可用：
+
+- DeepSeek 用官方 `favicon.svg`（单色 `#4D6BFE`），其余五站用各家 favicon 归一化成 48×48 PNG8（每张 0.8–1.6 KB）；
+- 图标版权归各家所有，此处仅用于标识对应服务；
+- `ICONS` 里没有条目的站点**自动退回通用地球图标**，所以新加站点不配图标也不会缺图——
+  想换成品牌图标，往 `ICONS` 里补一条 `"站点 id": "data:image/png;base64,…"` 即可。
+
 ### 站点侧的硬限制
 
 guest 的权限请求、下载、原生弹窗**全被拒绝**（http/https 弹窗会被转开成新的 sidebar tab）。
@@ -107,7 +117,7 @@ PKG="$HOME/.dsh/profiles/desktop/package.json"
 | 文件 | 作用 |
 | --- | --- |
 | `lib/index.js` | host 半边（stub：`name` + 空 `apply`），cordis loader 需要一个服务端入口 |
-| `lib/client.js` | 浏览器半边：`SITES` 站点表 + 注册 `sidebar.footer.action` 槽位的入口按钮（`id: deepseek-web`，`order: 15`） |
+| `lib/client.js` | 浏览器半边：`SITES` 站点表 + `ICONS` 品牌图标表 + 注册 `sidebar.footer.action` 槽位的入口按钮（`id: deepseek-web`，`order: 15`） |
 | `cordis.patch.yml` | bundle patch：`insert: [{ id: deepseek-web, name: dsh-deepseek-web }]` |
 | `locale/zh.json` / `locale/en.json` | 插件说明书元信息（供插件清单类界面读取） |
 | `install.sh` | 装/校验 profile 挂载 |
@@ -120,8 +130,10 @@ PKG="$HOME/.dsh/profiles/desktop/package.json"
 - 入口 id：`deepseek-web`；order `15`（夹在 `dpharness` = 12 与 `restart` = 20 之间）
 - `sidebarRight` 服务**故意不写进 `inject`**，改为惰性解析：服务缺失时只回退，不会让插件永久
   pending（`dsh-locale-fallback` 曾因声明了缺失的 inject 把整个 boot 拖挂）
-- 图标按 `IconNewChatOutlineRegular` → `...Medium` → `...20` → `IconGlobeOutline*` 逐级解析，
-  全都没有时返回 `null` 而不是 `undefined`——渲染期抛错会被 slot 的错误边界吃掉，表现为「按钮静默消失」
+- 站点图标：`siteIcon(site, size)` 先查 `ICONS[site.id]`（data URI → 内联 `<img className="dswb_icon">`），
+  没有才走「通用图标」解析链 `IconNewChatOutlineRegular` → `...Medium` → `...20` → `IconGlobeOutline*`
+  → `...Medium` → `...14`；整条链全都没有时返回 `null` 而不是 `undefined`——渲染期抛错会被 slot 的
+  错误边界吃掉，表现为「按钮静默消失」
 - 展开态用 `useState` + 点击外部/Escape 关闭（`document` 上的 capture 阶段 click 监听），
   不依赖任何 popover/Menu 组件，因此不受侧边栏 `overflow` 裁剪影响
 
@@ -139,6 +151,9 @@ panel, side by side with your current session.
   `ctx.sidebarRight.openTab("browser", { params: { url } })`, falling back to `window.open` when the
   sidebar service is unavailable.
 - The site list is the `SITES` array at the top of [`lib/client.js`](./lib/client.js).
+- Each site shows its own brand icon, inlined as a data URI in the `ICONS` map of the same file — no
+  hotlinking, no extra requests, works offline; a site with no `ICONS` entry falls back to a generic
+  globe glyph.
 
 ```bash
 git clone https://github.com/zhanghao3693/dsh-deepseek-web.git ~/Documents/dsh-deepseek-web
