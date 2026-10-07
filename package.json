@@ -1,0 +1,54 @@
+{
+  "name": "dsh-deepseek-web",
+  "icon": "./icon.svg",
+  "version": "0.1.0",
+  "description": "DeepSeek 网页版一键入口：在右侧边栏浏览器 tab 里打开 chat.deepseek.com（免费网页版，走 Electron webview，不受 CSP frame-ancestors 限制）。",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    "./locale/*.json": "./locale/*.json",
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-ui-sidebar-right"
+      ]
+    }
+  },
+  "files": [
+    "icon.svg",
+    "locale",
+    "lib/index.js",
+    "lib/client.js",
+    "cordis.patch.yml"
+  ],
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "deepseek",
+    "cordis",
+    "plugin",
+    "sidebar",
+    "webview"
+  ],
+  "author": "zhanghao3693",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zhanghao3693/dsh-deepseek-web.git"
+  },
+  "homepage": "https://github.com/zhanghao3693/dsh-deepseek-web#readme",
+  "bugs": {
+    "url": "https://github.com/zhanghao3693/dsh-deepseek-web/issues"
+  },
+  "license": "MIT"
+}

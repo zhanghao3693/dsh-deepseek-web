@@ -1,0 +1,14 @@
+# dsh-deepseek-web bundle patch
+#
+# 声明 dsh.bundle.patch 之后，官方/桌面端插件管理器（@deepseek-ai/dsh-plugin-manager）
+# 才会把本包当成 profile 的一层 layer：installBundle 会把它追加进
+# profile 的 `dsh.profile.bundles`，profile 启动时再把下面的 insert 合并进插件树。
+#
+# 为什么必须有这个文件：reconcile() 只保留「在 bundles 里且能读到 dsh.bundle.patch」
+# 的条目；没有它，本包会连同整个 bundles 列表一起被删掉。
+#
+# 注意：不要再在 profile 自己的 cordis.patch.yml 里重复 insert 同一个 id —— 那会重复挂载
+# （两个 host 半边、两个按钮）。
+- insert:
+    - id: deepseek-web
+      name: dsh-deepseek-web
