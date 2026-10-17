@@ -82,6 +82,17 @@ guest 的权限请求、下载、原生弹窗**全被拒绝**（http/https 弹�
 
 ## 安装
 
+**方式一：npm 包（推荐，装完即可升级）**
+
+```bash
+dsh plugin --profile desktop add @dpharness/dsh-deepseek-web
+```
+
+> 包名是 scoped 的 `@dpharness/dsh-deepseek-web`。**不要**装 npm 上的 `dsh-deepseek-web`
+> —— 那个同名包属于另一位作者（`y-wi`），与本项目无关，功能也不同。
+
+**方式二：从仓库挂本地目录（改代码时用）**
+
 ```bash
 git clone https://github.com/zhanghao3693/dsh-deepseek-web.git ~/Documents/dsh-deepseek-web
 bash ~/Documents/dsh-deepseek-web/install.sh          # 默认 desktop profile
@@ -91,6 +102,10 @@ bash ~/Documents/dsh-deepseek-web/install.sh          # 默认 desktop profile
 脚本幂等，做三件事：建 symlink → 补 profile 的 `dependencies` + `dsh.profile.bundles` → 打印重启提示。
 **然后需要重启一次 DSH 宿主**（点左侧栏底部的「重启」按钮，或重开应用），生效后左侧栏底部出现「网页版 AI」。
 
+> ⚠️ 2026-10-17 起包名由 `dsh-deepseek-web` 改为 `@dpharness/dsh-deepseek-web`（原名在 npm 上被占用）。
+> 从旧版升级时，请把 profile `package.json` 的 `dependencies` 与 `dsh.profile.bundles` 里的
+> **旧键删掉**，再按上面任一方式安装；否则会重复挂载。
+
 host 侧的挂载行由本包自带的 `cordis.patch.yml` 通过 `dsh.bundle.patch` 提供，
 **不要**再往 profile 自己的 `cordis.patch.yml` 里写 `insert`（会重复挂载出两个按钮）。
 
@@ -98,8 +113,9 @@ host 侧的挂载行由本包自带的 `cordis.patch.yml` 通过 `dsh.bundle.pat
 
 ```bash
 PKG="$HOME/.dsh/profiles/desktop/package.json"
-# 1. 从 $PKG 的 dependencies 与 dsh.profile.bundles 里删掉 "dsh-deepseek-web"
-# 2. rm "$HOME/.dsh/profiles/desktop/node_modules/dsh-deepseek-web"
+# 1. 从 $PKG 的 dependencies 与 dsh.profile.bundles 里删掉 "@dpharness/dsh-deepseek-web"
+#    （若从旧版升级，旧键 "dsh-deepseek-web" 也要删）
+# 2. rm "$HOME/.dsh/profiles/desktop/node_modules/@dpharness/dsh-deepseek-web"
 # 3. 重启 DSH
 ```
 
@@ -156,6 +172,9 @@ panel, side by side with your current session.
   globe glyph.
 
 ```bash
+# npm（推荐）
+dsh plugin --profile desktop add @dpharness/dsh-deepseek-web
+# 或从仓库挂本地目录
 git clone https://github.com/zhanghao3693/dsh-deepseek-web.git ~/Documents/dsh-deepseek-web
 bash ~/Documents/dsh-deepseek-web/install.sh
 # then restart the DSH host (restart button at the sidebar foot, or relaunch the app)

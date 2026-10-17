@@ -12,10 +12,16 @@
 #
 # 插件的 host 行由本包自带的 cordis.patch.yml 通过 dsh.bundle.patch 挂载，
 # 所以 **不需要** 也不应该再往 profile 自己的 cordis.patch.yml 里写 insert。
+#
+# 2026-10-17：包名改为 scoped `@dpharness/dsh-deepseek-web`（npm 上 `dsh-deepseek-web`
+# 是别人的包，原名无法发布）。profile 的依赖键随之变化，旧键需手工删除——
+# 脚本会打印提示，但**不会**替用户删（动别人的 package.json 要显式授权）。
 
 set -euo pipefail
 
-PLUGIN_NAME="dsh-deepseek-web"
+PLUGIN_NAME="@dpharness/dsh-deepseek-web"
+# 旧包名（scoped 化之前的本地挂载键）。存在时给出迁移提示，避免同一插件被挂两次。
+LEGACY_NAME="dsh-deepseek-web"
 PLUGIN_SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROFILE_NAME="${1:-desktop}"
 PROFILE_DIR="$HOME/.dsh/profiles/$PROFILE_NAME"
@@ -33,9 +39,16 @@ echo "==> profile: $PROFILE_DIR"
 echo "==> 1/3 symlink 插件到 profile node_modules ..."
 mkdir -p "$NM"
 LINK_TARGET="$PLUGIN_SRC"
+# scoped 包要落到 node_modules/@scope/name，父目录不存在时 ln 会失败
+mkdir -p "$(dirname "$NM/$PLUGIN_NAME")"
 rm -rf "$NM/$PLUGIN_NAME"
 ln -s "$LINK_TARGET" "$NM/$PLUGIN_NAME"
 echo "     $NM/$PLUGIN_NAME -> $LINK_TARGET"
+if [ -e "$NM/$LEGACY_NAME" ] || [ -L "$NM/$LEGACY_NAME" ]; then
+	echo "     ⚠️  发现旧包名挂载：$NM/$LEGACY_NAME"
+	echo "        请在 $PKG 的 dependencies 与 dsh.profile.bundles 里删掉 \"$LEGACY_NAME\"，"
+	echo "        并删除该 symlink，否则同一插件会被挂载两次。"
+fi
 
 echo "==> 2/3 注册到 profile package.json（dependencies + dsh.profile.bundles）..."
 if ! command -v node >/dev/null 2>&1; then
