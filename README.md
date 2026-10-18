@@ -106,6 +106,13 @@ bash ~/Documents/dsh-deepseek-web/install.sh          # 默认 desktop profile
 > 从旧版升级时，请把 profile `package.json` 的 `dependencies` 与 `dsh.profile.bundles` 里的
 > **旧键删掉**，再按上面任一方式安装；否则会重复挂载。
 
+> ⚠️ 改名时还必须同步**三处运行时标识**，否则按钮会**静默消失**（host 行还在、控制台无报错）：
+> 1. `cordis.patch.yml` 里 `insert` 行的 `name` —— 这不是随便起的标签，而是 **Loader 行名**，
+>    `@deepseek-ai/dsh-client-modules` 的 `nearestPackage()` 用「行名 === package.json 的 `name`」
+>    判定包归属，对不上就返回 `undefined` → `resolveMeta()` 返回 `null` → client 半边被静默丢弃。
+> 2. `lib/client.js` 顶部的 `window.__ModuleLoader__.load({ id })`。
+> 3. 同一文件里 `<style>` 的 `data-plugin`（HMR 按它回收样式，留着旧 id 会积下僵尸 `<style>`）。
+
 host 侧的挂载行由本包自带的 `cordis.patch.yml` 通过 `dsh.bundle.patch` 提供，
 **不要**再往 profile 自己的 `cordis.patch.yml` 里写 `insert`（会重复挂载出两个按钮）。
 
@@ -134,7 +141,7 @@ PKG="$HOME/.dsh/profiles/desktop/package.json"
 | --- | --- |
 | `lib/index.js` | host 半边（stub：`name` + 空 `apply`），cordis loader 需要一个服务端入口 |
 | `lib/client.js` | 浏览器半边：`SITES` 站点表 + `ICONS` 品牌图标表 + 注册 `sidebar.footer.action` 槽位的入口按钮（`id: deepseek-web`，`order: 15`） |
-| `cordis.patch.yml` | bundle patch：`insert: [{ id: deepseek-web, name: dsh-deepseek-web }]` |
+| `cordis.patch.yml` | bundle patch：`insert: [{ id: deepseek-web, name: "@dpharness/dsh-deepseek-web" }]`（`name` 必须与 package.json 的 `name` 逐字相等） |
 | `locale/zh.json` / `locale/en.json` | 插件说明书元信息（供插件清单类界面读取） |
 | `install.sh` | 装/校验 profile 挂载 |
 

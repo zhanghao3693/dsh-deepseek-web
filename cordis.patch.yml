@@ -11,4 +11,7 @@
 # （两个 host 半边、两个按钮）。
 - insert:
     - id: deepseek-web
-      name: dsh-deepseek-web
+      # 这里是 **Loader 行名**，必须与 package.json 的 name 逐字相等：
+      # dsh-client-modules 的 nearestPackage() 用「行名 == package.json name」
+      # 判定包归属，对不上就静默丢弃 client 半边（按钮消失、控制台无报错）。
+      name: "@dpharness/dsh-deepseek-web"
