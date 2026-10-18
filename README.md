@@ -1,7 +1,7 @@
 # dsh-deepseek-web — 网页版 AI 一键入口
 
-在 **DeepSeek Harness 桌面版**的侧边栏底部加一个 **「网页版 AI」** 按钮：点一下展开站点列表，
-选中哪家就在**右侧边栏的浏览器 tab** 里打开它的免费网页版，和当前会话并排。
+在 **DeepSeek Harness 桌面版**的侧边栏底部加一个 **「网页版 AI」** 按钮：点一下弹出**居中的站点选择弹窗**
+（六站品牌图标网格），选中哪家就在**右侧边栏的浏览器 tab** 里打开它的免费网页版，和当前会话并排。
 
 默认六站：**DeepSeek 网页版 · Kimi · 豆包 · 腾讯元宝 · 通义千问 · 智谱清言**（可自由增删，见下）。
 
@@ -46,9 +46,13 @@ const SITES = [
 | --- | --- | --- | --- | --- |
 | chat.deepseek.com | 200 | | doubao.com | 200 |
 | kimi.com | 200 | | yuanbao.tencent.com | 200 |
-| chat.qwen.ai | 200 | | chatglm.cn | 200 |
+| **www.qianwen.com** | 200 | | chatglm.cn | 200 |
 | chatgpt.com | 403 | | claude.ai | 403 |
 | perplexity.ai | 403 | | | |
+
+> 千问有两个**互不相通**的站：`www.qianwen.com` 是国内版（中文，阿里「千问」），
+> `chat.qwen.ai` 是国际版 Qwen（英文界面、独立账号体系）。本插件用国内版；
+> `tongyi.com` / `tongyi.aliyun.com` 现在都 301 到 `qianwen.com`。
 
 **403 别急着下结论**：那是 curl 撞上 Cloudflare 机器人拦截，不代表浏览器里打不开。
 ChatGPT / Claude / Gemini 默认在代码里**注释掉**了，用之前请在面板里实测后自行放开。
@@ -140,7 +144,7 @@ PKG="$HOME/.dsh/profiles/desktop/package.json"
 | 文件 | 作用 |
 | --- | --- |
 | `lib/index.js` | host 半边（stub：`name` + 空 `apply`），cordis loader 需要一个服务端入口 |
-| `lib/client.js` | 浏览器半边：`SITES` 站点表 + `ICONS` 品牌图标表 + 注册 `sidebar.footer.action` 槽位的入口按钮（`id: deepseek-web`，`order: 15`） |
+| `lib/client.js` | 浏览器半边：`SITES` 站点表 + `ICONS` 品牌图标表 + 注册 `sidebar.footer.action` 槽位的入口按钮（`id: deepseek-web`，`order: 15`），点击弹出宿主管家 `Modal` 站点选择弹窗 |
 | `cordis.patch.yml` | bundle patch：`insert: [{ id: deepseek-web, name: "@dpharness/dsh-deepseek-web" }]`（`name` 必须与 package.json 的 `name` 逐字相等） |
 | `locale/zh.json` / `locale/en.json` | 插件说明书元信息（供插件清单类界面读取） |
 | `install.sh` | 装/校验 profile 挂载 |
@@ -157,8 +161,18 @@ PKG="$HOME/.dsh/profiles/desktop/package.json"
   没有才走「通用图标」解析链 `IconNewChatOutlineRegular` → `...Medium` → `...20` → `IconGlobeOutline*`
   → `...Medium` → `...14`；整条链全都没有时返回 `null` 而不是 `undefined`——渲染期抛错会被 slot 的
   错误边界吃掉，表现为「按钮静默消失」
-- 展开态用 `useState` + 点击外部/Escape 关闭（`document` 上的 capture 阶段 click 监听），
-  不依赖任何 popover/Menu 组件，因此不受侧边栏 `overflow` 裁剪影响
+- 展开态用 `useState`；点按钮时优先渲染**宿主管家 `Modal`**（`@deepseek-ai/dsh-client-ui-primitives`，
+  portal 到 body、mask 点击与 Escape 自动关闭、`aria-modal`），弹窗内是 3 列图标卡片网格。
+  宿主没导出 `Modal` 时自动退回内联下拉菜单，那条回退路径才需要自己挂
+  `document` capture 阶段的 click 监听与 Escape 处理
+
+## 变更记录
+
+- **0.3.0** — 站点选择从内联下拉菜单改为**居中 Modal 弹窗**（宿主管家组件，3 列图标网格）；
+  千问改用国内版 `www.qianwen.com`；修正改名后 client 半边静默丢失（按钮消失）。
+- 0.2.1 — 包名改为 scoped `@dpharness/dsh-deepseek-web`。
+- 0.2.0 — 单站入口泛化为六站清单；站点菜单改用各家品牌图标（内联 data URI）。
+- 0.1.0 — 首个版本：DeepSeek 网页版一键入口。
 
 ## English quickstart
 
