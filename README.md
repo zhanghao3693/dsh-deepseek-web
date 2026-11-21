@@ -132,10 +132,18 @@ PKG="$HOME/.dsh/profiles/desktop/package.json"
 
 ## 已知代价
 
-- **登录不跨应用重启保留。** 桌面版给这个面板分配的存储分区是
+- **登录默认不跨应用重启保留。** 桌面版给这个面板分配的存储分区是
   `dsh-sidebar-browser-${randomUUID()}`（进程内创建、没有 `persist:` 前缀），Cookie 只活在本次进程里。
   每次重启 DeepSeek Harness 后需要重新登录一次。好消息是 tab 的标题/URL 会被保存，
   重启后点「恢复」即可，不用重输网址。
+
+  > 这个限制在**宿主**里，不在本插件里——本插件拿不到也改不了 partition。
+  > 唯一的解法是给 `app.asar` 打一个等长补丁，把分区名换成
+  > `persist:dsh-sidebar-browser`。脚本与完整说明见
+  > [`host-patch/patch-asar.mjs`](./host-patch/patch-asar.mjs) 与
+  > [`docs/host-patch.md`](./docs/host-patch.md)。属于非官方修改，**每次 DSH 自动更新后都会失效**，
+  > 需要重跑一次；不打这个补丁，插件本身的功能完全不受影响。
+
 - 面板里是**真正的网页版，没有 API**：DSH 的模型路由无法自动把「简单问题」转发过去。
   这条入口是给**手动**问免费问题时用的；要做 API 侧的分流请走 `@deepseek-ai/dsh-llm-pi-ai` 的路由配置。
 
@@ -148,6 +156,7 @@ PKG="$HOME/.dsh/profiles/desktop/package.json"
 | `cordis.patch.yml` | bundle patch：`insert: [{ id: deepseek-web, name: "@dpharness/dsh-deepseek-web" }]`（`name` 必须与 package.json 的 `name` 逐字相等） |
 | `locale/zh.json` / `locale/en.json` | 插件说明书元信息（供插件清单类界面读取） |
 | `install.sh` | 装/校验 profile 挂载 |
+| `host-patch/patch-asar.mjs` | **可选**宿主补丁：等长改写 `app.asar`，让侧栏浏览器登录态跨重启保留（见 [`docs/host-patch.md`](./docs/host-patch.md)） |
 
 ## 关键常量（排障用）
 
@@ -168,6 +177,10 @@ PKG="$HOME/.dsh/profiles/desktop/package.json"
 
 ## 变更记录
 
+- **0.4.0** — 新增宿主补丁 [`host-patch/patch-asar.mjs`](./host-patch/patch-asar.mjs)：
+  等长改写 `app.asar`，把侧栏浏览器的存储分区换成 `persist:dsh-sidebar-browser`，
+  让登录态跨应用重启保留；配套说明见 [`docs/host-patch.md`](./docs/host-patch.md)。
+  **插件自身的代码与行为没有任何变化**，不打补丁照常使用。
 - **0.3.0** — 站点选择从内联下拉菜单改为**居中 Modal 弹窗**（宿主管家组件，3 列图标网格）；
   千问改用国内版 `www.qianwen.com`；修正改名后 client 半边静默丢失（按钮消失）。
 - 0.2.1 — 包名改为 scoped `@dpharness/dsh-deepseek-web`。
@@ -206,6 +219,12 @@ Caveats: cookies for that panel live in an in-memory partition
 permission requests, downloads and native popups are denied (http/https popups become new sidebar
 tabs), so OAuth-via-popup logins may not complete. It is the real web app, with no API — DSH's
 model router cannot dispatch to it automatically.
+
+That login caveat lives in the **host**, not in this plugin: the plugin cannot reach or change the
+partition. The only fix is an equal-length patch of the host `app.asar` that renames the partition
+to `persist:dsh-sidebar-browser` — see [`host-patch/patch-asar.mjs`](./host-patch/patch-asar.mjs)
+and [`docs/host-patch.md`](./docs/host-patch.md). It is an unofficial modification, invalidated by
+every DSH auto-update (re-run the script afterwards); the plugin works fine without it.
 
 ## License
 
